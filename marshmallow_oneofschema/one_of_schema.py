@@ -114,7 +114,7 @@ class OneOfSchema(Schema):
             result[self.type_field] = obj_type
         return result
 
-    def load(self, data, many=None, partial=None):
+    def load(self, data, many=None, partial=None, unknown=None):
         errors = {}
         result_data = []
         result_errors = {}
@@ -123,7 +123,9 @@ class OneOfSchema(Schema):
             partial = self.partial
         if not many:
             try:
-                result = result_data = self._load(data, partial=partial)
+                result = result_data = self._load(
+                    data, partial=partial, unknown=unknown
+                )
                 #  result_data.append(result)
             except ValidationError as error:
                 result_errors[0] = error.messages
@@ -146,11 +148,12 @@ class OneOfSchema(Schema):
             exc = ValidationError(errors, data=data, valid_data=result)
             raise exc
 
-    def _load(self, data, partial=None):
+    def _load(self, data, partial=None, unknown=None):
         if not isinstance(data, dict):
             raise ValidationError({'_schema': 'Invalid data type: %s' % data})
 
         data = dict(data)
+        unknown = unknown or self.unknown
 
         data_type = data.get(self.type_field)
         if self.type_field in data and self.type_field_remove:
@@ -179,7 +182,7 @@ class OneOfSchema(Schema):
 
         schema.context.update(getattr(self, 'context', {}))
 
-        return schema.load(data, many=False, partial=partial)
+        return schema.load(data, many=False, partial=partial, unknown=unknown)
 
     def validate(self, data, many=None, partial=None):
         try:
