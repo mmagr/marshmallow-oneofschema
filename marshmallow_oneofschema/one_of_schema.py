@@ -1,3 +1,4 @@
+import marshmallow
 from marshmallow import Schema, ValidationError
 
 
@@ -153,7 +154,12 @@ class OneOfSchema(Schema):
             raise ValidationError({'_schema': 'Invalid data type: %s' % data})
 
         data = dict(data)
-        unknown = unknown or self.unknown
+
+        # print(unknown)
+        # if getattr(self, 'unknown', None):
+        #     print('self: {} {} {} {}'.format(self.__dict__, marshmallow.INCLUDE, marshmallow.EXCLUDE, marshmallow.RAISE))
+        # unknown = unknown if unknown else getattr(self, 'unknown', None)
+        # print(unknown)
 
         data_type = data.get(self.type_field)
         if self.type_field in data and self.type_field_remove:
@@ -164,6 +170,7 @@ class OneOfSchema(Schema):
                 self.type_field: ['Missing data for required field.']
             })
 
+        # @mmagr: Here, we apply what we got from unknown, or self.unknown
         try:
             type_schema = self.type_schemas.get(data_type)
         except TypeError:
@@ -172,6 +179,7 @@ class OneOfSchema(Schema):
                 self.type_field: ['Invalid value: %s' % data_type]
             })
         if not type_schema:
+            # @BUG: this should implement the behavior for marshmallow.INCLUDE and .EXCLUDE
             raise ValidationError({
                 self.type_field: ['Unsupported value: %s' % data_type],
             })
@@ -182,6 +190,8 @@ class OneOfSchema(Schema):
 
         schema.context.update(getattr(self, 'context', {}))
 
+        # @mmagr: here, we apply unknown, or schema.unknown
+        # (applying schema.unknown implies unknown = None)
         return schema.load(data, many=False, partial=partial, unknown=unknown)
 
     def validate(self, data, many=None, partial=None):
